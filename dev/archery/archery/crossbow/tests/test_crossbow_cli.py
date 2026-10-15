@@ -15,11 +15,43 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from unittest.mock import Mock, patch
+
 from click.testing import CliRunner
 import pytest
 
-from archery.crossbow.cli import crossbow
+from archery.crossbow.cli import crossbow, render, submit
 from archery.utils.git import git
+
+
+@pytest.mark.parametrize('command', [submit, render])
+@pytest.mark.parametrize('option', ['--arrow-ref', '--arrow-sha', '-t'])
+def test_crossbow_arrow_ref(command, option):
+    arrow = Mock()
+    queue = Mock()
+    job = Mock()
+    job.render_tasks.return_value = {
+        'example': {'example.yml': 'name: example\n'}
+    }
+    args = [option, 'apache-arrow-18.0.0', 'example']
+    if command is submit:
+        args.insert(0, '--dry-run')
+
+    with patch('archery.crossbow.cli.Config.load_yaml'), \
+            patch('archery.crossbow.cli.Target.from_repo') as target, \
+            patch('archery.crossbow.cli.Job.from_config', return_value=job):
+        result = CliRunner().invoke(command, args, obj={
+            'arrow': arrow, 'queue': queue, 'output': Mock()
+        })
+
+    assert result.exit_code == 0, result.output
+    target.assert_called_once_with(
+        arrow, remote=None, branch=None, head='apache-arrow-18.0.0',
+        version=None
+    )
+    queue.fetch.assert_not_called()
+    queue.put.assert_not_called()
+    queue.push.assert_not_called()
 
 
 @pytest.mark.integration

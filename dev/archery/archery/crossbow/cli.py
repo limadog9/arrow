@@ -98,9 +98,9 @@ def check_config(obj, config_path):
                    'https://github.com/kszucs/arrow.')
 @click.option('--arrow-branch', '-b', default=None,
               help='Give the branch name explicitly, e.g. ARROW-1949.')
-@click.option('--arrow-sha', '-t', default=None,
-              help='Set commit SHA or Tag name explicitly, e.g. f67a515, '
-                   'apache-arrow-0.11.1.')
+@click.option('--arrow-ref', '--arrow-sha', '-t', 'arrow_ref', default=None,
+              help='Set Git reference (commit SHA or tag) explicitly, e.g. '
+                   'f67a515, apache-arrow-0.11.1.')
 @click.option('--fetch/--no-fetch', default=True,
               help='Fetch references (branches and tags) from the remote')
 @click.option('--dry-run/--commit', default=False,
@@ -110,7 +110,7 @@ def check_config(obj, config_path):
               help='Don\'t push the changes')
 @click.pass_obj
 def submit(obj, tasks, groups, params, job_prefix, config_path, arrow_version,
-           arrow_remote, arrow_branch, arrow_sha, fetch, dry_run, no_push):
+           arrow_remote, arrow_branch, arrow_ref, fetch, dry_run, no_push):
     output = obj['output']
     queue, arrow = obj['queue'], obj['arrow']
 
@@ -121,15 +121,15 @@ def submit(obj, tasks, groups, params, job_prefix, config_path, arrow_version,
     except CrossbowError as e:
         raise click.ClickException(str(e))
 
-    # Override the detected repo url / remote, branch and sha - this aims to
-    # make release procedure a bit simpler.
+    # Override the detected repo url / remote, branch and Git reference to
+    # make the release procedure a bit simpler.
     # Note, that the target revision's crossbow templates must be
     # compatible with the locally checked out version of crossbow (which is
     # in case of the release procedure), because the templates still
     # contain some business logic (dependency installation, deployments)
     # which will be reduced to a single command in the future.
     target = Target.from_repo(arrow, remote=arrow_remote, branch=arrow_branch,
-                              head=arrow_sha, version=arrow_version)
+                              head=arrow_ref, version=arrow_version)
 
     # parse additional job parameters
     params = dict([p.split("=") for p in params])
@@ -227,14 +227,14 @@ def verify_release_candidate(obj, base_branch, create_pr,
                    'https://github.com/kszucs/arrow.')
 @click.option('--arrow-branch', '-b', default=None,
               help='Give the branch name explicitly, e.g. ARROW-1949.')
-@click.option('--arrow-sha', '-t', default=None,
-              help='Set commit SHA or Tag name explicitly, e.g. f67a515, '
-                   'apache-arrow-0.11.1.')
+@click.option('--arrow-ref', '--arrow-sha', '-t', 'arrow_ref', default=None,
+              help='Set Git reference (commit SHA or tag) explicitly, e.g. '
+                   'f67a515, apache-arrow-0.11.1.')
 @click.option('--param', '-p', 'params', multiple=True,
               help='Additional task parameters for rendering the CI templates')
 @click.pass_obj
 def render(obj, task, config_path, arrow_version, arrow_remote, arrow_branch,
-           arrow_sha, params):
+           arrow_ref, params):
     """
     Utility command to check the rendered CI templates.
     """
@@ -252,7 +252,7 @@ def render(obj, task, config_path, arrow_version, arrow_remote, arrow_branch,
     arrow = obj['arrow']
 
     target = Target.from_repo(arrow, remote=arrow_remote, branch=arrow_branch,
-                              head=arrow_sha, version=arrow_version)
+                              head=arrow_ref, version=arrow_version)
     config = Config.load_yaml(config_path)
     params = dict([p.split("=") for p in params])
     params["queue_remote_url"] = "https://github.com/org/crossbow"

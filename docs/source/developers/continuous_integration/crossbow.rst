@@ -207,6 +207,15 @@ Just render without applying or committing the changes:
 
    $ archery crossbow submit --dry-run task_name
 
+Select a commit or tag with ``--arrow-ref``:
+
+.. code::
+
+   $ archery crossbow submit --arrow-ref apache-arrow-18.0.0 --group wheel
+
+This option is also available for ``archery crossbow render``.
+``--arrow-sha`` and ``-t`` remain aliases for compatibility.
+
 Run only ``conda`` package builds and a C++ one:
 
 .. code::
